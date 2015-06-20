@@ -1,0 +1,136 @@
+= dokku を本番環境で使ってみた話
+
+# : subtitle
+#    サブタイトル
+: author
+   Kazuhiro NISHIYAMA
+# : institution
+#    所属
+: content-source
+   第7回 コンテナ型仮想化の情報交換会＠大阪
+: date
+   2015/06/20
+: allotted-time
+   20m
+: theme
+   default
+
+= 自己紹介
+
+  * twitter や github では @znz
+
+  # image
+  # src = https://secure.gravatar.com/avatar/8e497efbe99e2fa051316337d03624d9?s=200
+  # relative_height = 100
+
+= Ruby 関連
+
+  * Ruby (CRuby) のコミッター
+  * Ruby 関係でいろいろ
+    * るびま (Rubyist Magazine) とか
+      * http://magazine.rubyist.net/
+    * るりま (Ruby リファレンスマニュアル) とか
+      * http://docs.ruby-lang.org/ja/
+    * Ruby 関連のイベントでの発表
+
+= その他
+
+  * Debian 関係
+    * 関西 Debian 勉強会や大統一 Debian 勉強会での発表
+  * 各種勉強会
+    * この勉強会などでの発表
+
+= dokku とは?
+
+  * docker による mini Heroku クローン
+  * git で deploy
+  * 単独サーバーで実行
+    * スケーラビリティはない (スケールアウトできない)
+
+= dokku の歴史 (知っている範囲で)
+
+  * 0.2.x で開発が停滞していた
+  * dokku-alt という fork ができた
+  * 開発がまた活発になっていた
+    * Deis というスポンサーがついていた
+
+= 使い方
+
+  * クリーンな Ubuntu 14.04 x64 でインストール
+  * heroku のようにコマンド操作
+    * dokku コマンドで操作
+    * リモートから ssh で操作
+  * ssh 経由の git で deploy
+
+= 使ってみた感想
+
+  * 安定して動いているときは安定している
+  * 細かい不満はいくつかある
+    * デフォルトのタイムアウトが短い
+    * ログが悩ましい
+    * プラグインの対応バージョンがわかりにくい
+
+= タイムアウトを伸ばす
+
+  * ((%/home/dokku/ENV%))で増やす
+    * ((%CURL_CONNECT_TIMEOUT%))
+    * ((%CURL_TIMEOUT%))
+
+= 永続的ストレージ
+
+  * docker-options プラグイン (標準添付) を利用
+    * ログをホスト側に記録
+      * dokku docker-options:add demo-app deploy,run "-v /srv/demo-app/log:/app/log"
+    * ファイルアップロード
+      * dokku docker-options:add demo-app deploy,run "-v /srv/demo-app/uploads:/app/uploads"
+
+= プラグイン
+
+  * ドキュメントに一覧がある
+    * http://progrium.viewdocs.io/dokku/plugins
+  * 古いバージョンとの互換は今でも使えるのかが不明
+  * 標準に取り込まれた機能もある (末尾に一覧)
+
+= PostgreSQL プラグイン
+
+  * Compatible with 0.3.16 のものを使ってみた
+    * https://github.com/Flink/dokku-psql-single-container
+  * dokku の deb 更新時に問題あり
+    * https://github.com/Flink/dokku-psql-single-container/issues/5
+
+= sshcommand 書き換え
+
+  * PostgreSQL プラグインのため chown のところを書き換えた
+    * ((%chown -R dokku /home/dokku%)) 相当
+    * ((%chown 999 -R /home/dokku/.psql-sc/data%)) が必要
+    * ((%chown -R /home/dokku/.ssh /home/dokku/*%)) 相当に変更
+
+= deb パッケージ
+
+  * 0.3.17 から deb パッケージインストールが標準になった
+
+= memcached
+
+  * プラグインは使わず、ホスト側にインストール
+  * ufw で制限した上で lo 以外も listen するように変更
+  * docker 用の interface は起動のタイミングで存在しなかった
+
+= 環境変数
+
+  * タブを含む環境変数はうまく設定できなかった
+    * heroku ではできた
+    * LTSV が設定したかった
+    * 結局「,」区切りにした
+
+= dokku run
+
+  * cron で2個同時に動かすとエラーになることがあった
+    * 1分ずらした
+  * 標準入力をリダイレクトで受け取れなかった
+    * .forward でメール処理ができなかった
+
+= まとめ
+
+  * dokku は用途によっては使える
+  * ソースまで読む気がないと使いこなすのは難しい
+  * heroku はやっぱりすごい
